@@ -32,6 +32,7 @@
     };
 
     utils.constant = function(value) {
+        value = _.clone(value);
         return function() {
             return _.clone(value);
         };

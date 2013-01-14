@@ -11,44 +11,38 @@
 			this.grid[coordinate] = new maze.Cell(coordinate[0], coordinate[1]);
 		}, this);
 
-		this.beginning = this.grid["0,0"];
-		this.end = this.grid[(this.getGridWidth() - 1) + "," + (this.getGridHeight() - 1)];
+		this.beginning = this.grid[[0,0]];
+		this.end = this.grid[[(this.getGridWidth() - 1), (this.getGridHeight() - 1)]];
 
 		this.generate();
 	};
 
 	maze.Model.prototype.generate = function() {
-		var currentCell = this.grid[[Math.round(Math.random() * (this.getGridWidth() - 1)), Math.round(Math.random() * (this.getGridHeight() - 1))]];
+		var currentCell = this.grid[[Math.round(Math.random() * (this.getGridWidth() - 1)), 
+			Math.round(Math.random() * (this.getGridHeight() - 1))]]; //select a random cell
 		var cellStack = [];
 		var totalCells = this.getGridHeight() * this.getGridWidth();
 		var visitedCells = 1;
-		var cellNeighbors = [];
 
 		while(visitedCells < totalCells) {
-			cellNeighbors = _.filter(this.getNeighbors(currentCell), function(cell) {
+			var cellNeighbors = _.filter(this.getNeighbors(currentCell), function(cell) {
 				return cell.allWallsIntact();
 			});
 			if(cellNeighbors.length > 0) {
 				var newCell = cellNeighbors[Math.round(Math.random() * (cellNeighbors.length - 1))];
 				
 				if(newCell.getX() > currentCell.getX()) {
-					currentCell.walls.east = false;
-					newCell.walls.west = false;
-				} 
-
-				else if(newCell.getX() < currentCell.getX()) {
-					currentCell.walls.west = false;
-					newCell.walls.east = false;
-				} 
-
-				else if(newCell.getY() < currentCell.getY()) {
-					currentCell.walls.north = false;
-					newCell.walls.south = false;
-				} 
-
-				else if(newCell.getY() > currentCell.getY()) {
-					currentCell.walls.south = false;
-					newCell.walls.north = false;
+					currentCell.walls[0].flag = false;
+					newCell.walls[3].flag = false;
+				} else if(newCell.getX() < currentCell.getX()) {
+					currentCell.walls[3].flag = false;
+					newCell.walls[0].flag = false;
+				} else if(newCell.getY() < currentCell.getY()) {
+					currentCell.walls[2].flag = false;
+					newCell.walls[1].flag = false;
+				} else if(newCell.getY() > currentCell.getY()) {
+					currentCell.walls[1].flag = false;
+					newCell.walls[2].flag = false;
 				}
 				
 				cellStack.push(currentCell);
@@ -68,37 +62,47 @@
 		    .reject(function(pair) {
 		    	return Math.abs(pair[0]) === Math.abs(pair[1]);
 		    })
-		    .map(function(offset){
+		    .map(function(offset){ //map directions to cells in the grid
 		      var x = offset[0]+square.getX();
 		      var y = offset[1]+square.getY();
-		      if(grid[[x, y]]) {
-		      	return grid[[x, y]];
-		      }
+		      return grid[[x, y]];
 		    })
-		    .filter(function(cell) {
-		    	return cell;
-		    })
+		    .compact()
 		    .value();
 	};
 
 	maze.Cell = function(x, y) {
-		this.backtracks = new maze.Directions();
-		this.solutions  = new maze.Directions();
-		this.borders    = new maze.Directions();
-		this.walls      = new maze.Directions();
+		this.backtracks = maze.createDirections();
+		this.solutions  = maze.createDirections();
+		this.borders    = maze.createDirections();
+		this.walls      = maze.createDirections();
 		this.getX       = _.constant(x);
 		this.getY       = _.constant(y);
 	};
 
-	maze.Cell.prototype.allWallsIntact = function() {
-		return _.every(this.walls, _.identity);
-	}
+	maze.createDirections = function() {
+		return _.chain(_.range(-1,2))
+		    .repeat(2)
+		    .product()
+		    .reject(function(pair) {
+		    	return Math.abs(pair[0]) === Math.abs(pair[1]);
+		    })
+		    .map(function(offset) {
+		    	return new maze.Direction(offset[0], offset[1]);
+		    })
+		    .value();
+	};
 
-	maze.Directions = function() {
-		this.north = true;
-		this.south = true;
-		this.east  = true;
-		this.west  = true;
+	maze.Cell.prototype.allWallsIntact = function() {
+		return _.every(_.map(this.walls, function(direction) {
+			return direction.flag;
+		}));
+	};
+
+	maze.Direction = function(xOff, yOff) {
+		this.getXOff = _.constant(xOff);
+		this.getYOff = _.constant(yOff);
+		this.flag = true;
 	};
 
 }());

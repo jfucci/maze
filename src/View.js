@@ -43,51 +43,42 @@
 
 	maze.View.prototype.update = function() {
 		this.ctx.save();
-		this.ctx.clearRect(0, 0, 1, 1);
-		this._drawBoard();
-		this.ctx.restore();
+		try {
+			this.ctx.clearRect(0, 0, 1, 1);
+			this._drawBoard();
+		} finally {
+			this.ctx.restore();
+		}
 	};
 
 	maze.View.prototype._drawBoard = function() {
 		this.ctx.beginPath();
 
+		//optimize:
 		_.each(this.model.grid, function(cell) {
-			if(cell.walls.north) {
-				this.drawNorthWall(cell);
+			if(cell.walls[2].flag) {
+				this.drawWall(cell, 0, 0, 1, 0);
 			}
-			if(cell.walls.south) {
-				this.drawSouthWall(cell);
+			if(cell.walls[1].flag) {
+				this.drawWall(cell, 0, 1, 1, 1);
 			}
-			if(cell.walls.east) {
-				this.drawEastWall(cell);
+			if(cell.walls[0].flag) {
+				this.drawWall(cell, 1, 0, 1, 1);
 			}
-			if(cell.walls.west) {
-				this.drawWestWall(cell);
+			if(cell.walls[3].flag) {
+				this.drawWall(cell, 0, 0, 0, 1);
 			}
 		}, this);
 
 		this._stroke(1/2, 'black');
 	};
 
-	maze.View.prototype.drawNorthWall = function(cell) {
-		this.ctx.moveTo((cell.getX() + this.pixel/2) / this.model.getGridWidth(), (cell.getY() + this.pixel/2) / this.model.getGridHeight());
-		this.ctx.lineTo((cell.getX() + this.pixel/2 + 1) / this.model.getGridWidth(), (cell.getY() + this.pixel/2) / this.model.getGridHeight());
-	};
-
-	maze.View.prototype.drawSouthWall = function(cell) {
-		this.ctx.moveTo((cell.getX() + this.pixel/2) / this.model.getGridWidth(), (cell.getY() + 1 + this.pixel/2) / this.model.getGridHeight());
-		this.ctx.lineTo((cell.getX() + this.pixel/2 + 1) / this.model.getGridWidth(), (cell.getY()  + 1 + this.pixel/2) / this.model.getGridHeight());
-	};
-
-	maze.View.prototype.drawEastWall = function(cell) {
-		this.ctx.moveTo((cell.getX() + 1 + this.pixel/2) / this.model.getGridWidth(), (cell.getY() + this.pixel/2) / this.model.getGridHeight());
-		this.ctx.lineTo((cell.getX() + 1 + this.pixel/2) / this.model.getGridWidth(), (cell.getY() + 1 + this.pixel/2) / this.model.getGridHeight());
-	};
-
-	maze.View.prototype.drawWestWall = function(cell) {
-		this.ctx.moveTo((cell.getX() + this.pixel/2) / this.model.getGridWidth(), (cell.getY() + this.pixel/2) / this.model.getGridHeight());
-		this.ctx.lineTo((cell.getX() + this.pixel/2) / this.model.getGridWidth(), (cell.getY() + 1 + this.pixel/2) / this.model.getGridHeight());
-	};
+	maze.View.prototype.drawWall = function(cell, x0off, y0off, x1off, y1off) {
+		this.ctx.moveTo((cell.getX() + x0off + this.pixel/2) / this.model.getGridWidth(), 
+			(cell.getY() + y0off + this.pixel/2) / this.model.getGridHeight());
+		this.ctx.lineTo((cell.getX() + x1off + this.pixel/2) / this.model.getGridWidth(), 
+			(cell.getY() + y1off + this.pixel/2) / this.model.getGridHeight());
+	}
 
 	maze.View.prototype._stroke = function(pixelWeight, color) {
 		this.ctx.strokeStyle = color;
