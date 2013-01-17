@@ -8,7 +8,7 @@
 
 		this.resizeCanvas();
 
-		//this.canvas.click(_.bind(this._mouseClick, this));
+		this.canvas.click(_.bind(this._mouseClick, this));
 		//this.canvas.mousemove(_.bind(this._mouseMove, this));
 	};
 
@@ -28,11 +28,16 @@
 		this.update();
 	};
 
+	maze.View.prototype._mouseClick = function(event) {
+		this.selectedCell = this.model.grid[[this.getCellXCoordinate(event), this.getCellYCoordinate(event)]];
+		this.update();
+	};
+
 	maze.View.prototype.getCellXCoordinate = function(event) {
 		var pixelX = event.pageX - this.canvas.offset().left;
 		var x = 0;
 		if(pixelX < this.canvas.width() && pixelX > 0) {
-			var cellWidthInPixels = this.canvas.width() * (1 / this.model.getGridWidth());
+			var cellWidthInPixels = this.canvas.width() / this.model.getGridWidth();
 			x = Math.floor(pixelX / cellWidthInPixels); //find the x index of the cell
 		}
 		return x;
@@ -42,7 +47,7 @@
 		var pixelY = event.pageY - this.canvas.offset().top;
 		var y = 0;
 		if(pixelY < this.canvas.height() && pixelY > 0) {
-			var cellHeightInPixels = this.canvas.height() * (1 / this.model.getGridHeight());
+			var cellHeightInPixels = this.canvas.height() / this.model.getGridHeight();
 			y = Math.floor(pixelY / cellHeightInPixels); //find the y index of the cell
 		}
 		return y;
@@ -79,7 +84,11 @@
 		}, this);
 
 		this._stroke(1 / 2, 'black');
+		if(this.selectedCell) {
+			this.ctx.fillRect(this.selectedCell.getLocation()[0] / this.model.getGridWidth(), this.selectedCell.getLocation()[1] / this.model.getGridHeight(), 1 / this.model.getGridWidth(), 1/ this.model.getGridHeight());
+		}
 	};
+		
 
 	maze.View.prototype.drawWall = function(cell, startOffset, endOffset) {
 		var nudge  = this.pixel / 2;
