@@ -38,6 +38,39 @@
         };
     };
 
+    utils.pickRandom = function(collection) {
+        if(_.isArray(collection)){
+            return collection[_.random(collection.length - 1)];
+        }else{
+            var keys = _.keys(collection);
+            return collection[keys[_.random(keys.length - 1)]];
+        }
+    };
+
+    utils.add = function(vecA, b){
+        return _.map(vecA, function(value, key){
+            if(_.isNumber(b)){
+                return value + b;
+            }else{
+                return value + b[key];
+            }
+        });
+    };
+
+    utils.multiply = function(vecA, b){
+        return _.map(vecA, function(value, key){
+            if(_.isNumber(b)){
+                return value * b;
+            }else{
+                return value * b[key];
+            }
+        });
+    };
+
+    utils.subtract = function(vecA, vecB){
+      return _.add(vecA, _.multiply(vecB, -1));
+    };
+    
     _.mixin(utils);
 
 }());

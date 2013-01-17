@@ -1,0 +1,11 @@
+@import url('lib/bootstrap.css');
+
+body, html, #canvas_wrap {
+	height:95%;
+}
+
+#canvas_wrap {
+	border: 1px solid #ddd;
+	margin: 10px;
+	float:left;
+}
