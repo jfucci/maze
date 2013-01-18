@@ -29,7 +29,7 @@
 	};
 
 	maze.View.prototype._mouseClick = function(event) {
-		this.selectedCell = this.model.grid[[this.getCellXCoordinate(event), this.getCellYCoordinate(event)]];
+		this.playerSelectedCell = this.model.grid[[this.getCellXCoordinate(event), this.getCellYCoordinate(event)]];
 		this.update();
 	};
 
@@ -84,9 +84,17 @@
 		}, this);
 
 		this._stroke(1 / 2, 'black');
-		if(this.selectedCell) {
-			this.ctx.fillRect(this.selectedCell.getLocation()[0] / this.model.getGridWidth(), this.selectedCell.getLocation()[1] / this.model.getGridHeight(), 1 / this.model.getGridWidth(), 1/ this.model.getGridHeight());
+
+		this.drawSquare(this.model.player1Cell, "gray");
+
+		if(this.playerSelectedCell) {
+			this.drawSquare(this.playerSelectedCell, "green");
 		}
+
+		if(this.opponentSelectedCell) {
+			this.drawSquare(this.opponentSelectedCell, "red");
+		}
+
 	};
 		
 
@@ -109,4 +117,12 @@
 		this.ctx.lineWidth   = this.pixel * pixelWeight;
 		this.ctx.stroke();
 	};
+
+	maze.View.prototype.drawSquare = function(cell, color) {
+		this.ctx.fillStyle = color;
+		this.ctx.fillRect(cell.getLocation()[0] / this.model.getGridWidth() + (1 / (10 * this.model.getGridWidth())), 
+			cell.getLocation()[1] / this.model.getGridHeight() + (1 / (10 * this.model.getGridHeight())), 
+			1 / (1.25 * this.model.getGridWidth()), 1 / (1.25 * this.model.getGridHeight()));
+	}
+
 }());

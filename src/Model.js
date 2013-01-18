@@ -12,8 +12,12 @@
 			this.grid[coordinate] = new maze.Cell(coordinate[0], coordinate[1]);
 		}, this);
 
-		//this.player1Spawn = this.grid[[0,0]];
-		//this.player2Spawn = this.grid[[(this.getGridWidth() - 1), (this.getGridHeight() - 1)]];
+		this.player1Spawn = this.grid[[0,0]];
+		this.player2Spawn = this.grid[[(this.getGridWidth() - 1), (this.getGridHeight() - 1)]];
+		
+		this.player1Cell = this.player1Spawn;
+		this.player2Cell = this.player2Spawn;
+		
 		this.generate();
 	};
 

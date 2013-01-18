@@ -20,32 +20,57 @@
 		}, this));
 
 		$(document).keydown(_.bind(function (e) {
-			if(this.view.selectedCell) {
+			var key = e.which;
 
-				var key = e.which;
-
+			if(this.view.playerSelectedCell) {
 				switch(key) {
 					case 37: //left
-						this.manipulateWall(this.view.selectedCell, -1, 0);
+					case 65: //A
+						this.manipulateWall(this.view.playerSelectedCell, -1, 0);
 						break;
 					case 38: //up
-						this.manipulateWall(this.view.selectedCell, 0, -1);
+					case 87: //W
+						this.manipulateWall(this.view.playerSelectedCell, 0, -1);
 						break;
 					case 39: //right
-						this.manipulateWall(this.view.selectedCell, 1, 0);
+					case 68: //D
+						this.manipulateWall(this.view.playerSelectedCell, 1, 0);
 						break;
 					case 40: //down
-						this.manipulateWall(this.view.selectedCell, 0, 1);
+					case 83: //S
+						this.manipulateWall(this.view.playerSelectedCell, 0, 1);
 						break;
 				}
 
-				this.view.selectedCell = null;
-				this.view.update();
-
+				this.view.playerSelectedCell = null;
 			} else {
-				//code to move player
+				switch(key) {
+					case 37: //left
+					case 65: //A
+						this.movePlayer(-1, 0);
+						break;
+					case 38: //up
+					case 87: //W
+						this.movePlayer(0, -1);
+						break;
+					case 39: //right
+					case 68: //D
+						this.movePlayer(1, 0);
+						break;
+					case 40: //down
+					case 83: //S
+						this.movePlayer(0, 1);
+						break;
+				}
 			}
 
+			this.view.update();
+
+			//prevent the page from capturing the arrow keys 
+	 		//so the page doesn't scroll when they are pressed
+			if (key >= 37 && key <= 40) {
+     		   return false;
+    		}
 		}, this));
 	};
 
@@ -53,5 +78,15 @@
 		cell.walls[[x,y]] = !cell.walls[[x,y]];
 		var neighbor = this.model.grid[[cell.getLocation()[0] + x, cell.getLocation()[1] + y]];
 		neighbor.walls[[-x, -y]] = !neighbor.walls[[-x, -y]];
-	}
+	};
+
+	maze.Controller.prototype.movePlayer = function(x, y) {
+		if(!this.model.player1Cell.walls[[x, y]]) {
+			this.model.player1Cell = this.model.grid[[this.model.player1Cell.getLocation()[0] + x, 
+			this.model.player1Cell.getLocation()[1] + y]];
+
+			this.view.update();
+		}
+	};
+
 }());
