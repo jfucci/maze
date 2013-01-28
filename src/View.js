@@ -85,7 +85,9 @@
 
 		this._stroke(1 / 2, 'black');
 
+		this.drawSquare(this.model.dragonSpawn, "black");
 		this.drawSquare(this.model.player1Cell, "gray");
+		this.drawSquare(this.model.dragonCell, "red");
 
 		if(this.playerSelectedCell) {
 			this.drawSquare(this.playerSelectedCell, "green");

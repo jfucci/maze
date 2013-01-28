@@ -7,13 +7,14 @@
 	});
 
 	maze.Controller = function() {
-		var setup = {
+		this.setup = {
 			gridHeight: 20, //number of cells per column
 			gridWidth: 30   //number of cells per row
 		};
 		
-		this.model = new maze.Model(setup);
+		this.model = new maze.Model(this.setup);
 		this.view  = new maze.View(this.model);
+		this.stepDelay = 150;
 
 		$(window).resize(_.bind(function() {
 			this.view.resizeCanvas();
@@ -72,6 +73,8 @@
      		   return false;
     		}
 		}, this));
+	
+		this.interval = window.setInterval(_.bind(this.step, this), this.stepDelay);
 	};
 
 	maze.Controller.prototype.manipulateWall = function(cell, x, y) {
@@ -87,6 +90,16 @@
 
 			this.view.update();
 		}
+	};
+
+	maze.Controller.prototype.step = function() {
+		if (this.model.player1Cell === this.model.dragonSpawn) { //winning the maze
+			this.model = new maze.Model(this.setup);
+			this.view = new maze.View(this.model);
+			this.interval = window.setInterval(_.bind(this.step, this), this.stepDelay);
+		}
+		this.model.step();
+		this.view.update();
 	};
 
 }());

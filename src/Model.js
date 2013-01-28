@@ -13,11 +13,11 @@
 		}, this);
 
 		this.player1Spawn = this.grid[[0,0]];
-		this.player2Spawn = this.grid[[(this.getGridWidth() - 1), (this.getGridHeight() - 1)]];
+		this.dragonSpawn = this.grid[[(this.getGridWidth() - 1), (this.getGridHeight() - 1)]];
 		
 		this.player1Cell = this.player1Spawn;
-		this.player2Cell = this.player2Spawn;
-		
+		this.dragonCell = this.dragonSpawn;
+
 		this.generate();
 	};
 
@@ -81,6 +81,58 @@
 		var directionFromB2A = _.multiply(directionFromA2B, -1);
 		cellA.walls[directionFromA2B] = false;
 		cellB.walls[directionFromB2A] = false;
+	};
+
+	maze.Model.prototype.step = function() {
+		//if the player touches the dragon, they die and respawn
+		if(this.player1Cell === this.dragonCell) {
+			this.player1Cell = this.player1Spawn;
+		}
+		//chooses the next cell the dragon will travel to
+
+		var neighborXdistances = [];
+		var neighborYdistances = [];
+
+		_.each(this.getNeighbors(this.dragonCell), function(neighbor) {
+			neighborXdistances.push(Math.abs(neighbor.getLocation()[0] - this.player1Cell.getLocation()[0])); 
+			neighborYdistances.push(Math.abs(neighbor.getLocation()[1] - this.player1Cell.getLocation()[1]));
+		}, this);
+
+		var shortestXdistance = neighborXdistances[0];
+		_.each(neighborXdistances, function(distance) {
+			if(distance < shortestXdistance) {
+				shortestXdistance = distance;
+			}
+		});
+
+		var shortestYdistance = neighborYdistances[0];
+		_.each(neighborYdistances, function(distance) {
+			if(distance < shortestYdistance) {
+				shortestYdistance = distance;
+			}
+		});
+
+		if(shortestXdistance < shortestYdistance) {
+			var nextDragonCell = this.getNeighbors(this.dragonCell)[neighborYdistances.indexOf(shortestYdistance)];			
+		} else {
+			var nextDragonCell = this.getNeighbors(this.dragonCell)[neighborXdistances.indexOf(shortestXdistance)];
+
+		}
+		if(!nextDragonCell) {
+			_.pickRandom(this.getNeighbors(this.dragonCell));
+		}
+
+
+		var x = nextDragonCell.getLocation()[0] - this.dragonCell.getLocation()[0];
+		var y = nextDragonCell.getLocation()[1] - this.dragonCell.getLocation()[1];
+		if(Math.random() < 0.15) {
+			this.dragonCell.walls[[x, y]] = false;
+			nextDragonCell.walls[[-x, -y]] = false;
+		}
+		//the dragon moves to the next cell if there is not a wall between the dragon and it
+		if(!this.dragonCell.walls[[x, y]]) {
+			this.dragonCell = nextDragonCell;
+		}
 	};
 
 }());
