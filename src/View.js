@@ -2,9 +2,11 @@
 (function() {
 	"use strict";
 
-	maze.View = function(model) {
+	maze.View = function(model, dragonSprite, playerSprite) {
 		this.model  = model;
 		this.canvas = $("#canvas");
+		this.dragonSprite = dragonSprite;
+		this.playerSprite = playerSprite;
 
 		this.resizeCanvas();
 
@@ -86,8 +88,8 @@
 		this._stroke(1 / 2, 'black');
 
 		this.drawSquare(this.model.dragonSpawn, "black");
-		this.drawSquare(this.model.player1Cell, "gray");
-		this.drawSquare(this.model.dragonCell, "red");
+		this.drawSprite(this.model.player1Cell, this.playerSprite);
+		this.drawSprite(this.model.dragonCell, this.dragonSprite);
 
 		if(this.playerSelectedCell) {
 			this.drawSquare(this.playerSelectedCell, "green");
@@ -125,6 +127,12 @@
 		this.ctx.fillRect(cell.getLocation()[0] / this.model.getGridWidth() + (1 / (10 * this.model.getGridWidth())), 
 			cell.getLocation()[1] / this.model.getGridHeight() + (1 / (10 * this.model.getGridHeight())), 
 			1 / (1.25 * this.model.getGridWidth()), 1 / (1.25 * this.model.getGridHeight()));
+	}
+
+	maze.View.prototype.drawSprite = function(cell, img) {
+		this.ctx.drawImage(img, cell.getLocation()[0] / this.model.getGridWidth() + (1 / (10 * this.model.getGridWidth())), 
+			cell.getLocation()[1] / this.model.getGridHeight() + (1 / (10 * this.model.getGridHeight())), 
+			1 / (1.25 * this.model.getGridWidth()), 1 / (1.25 * this.model.getGridHeight()))
 	}
 
 }());

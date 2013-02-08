@@ -13,8 +13,12 @@
 		};
 		
 		this.model = new maze.Model(this.setup);
-		this.view  = new maze.View(this.model);
-		this.stepDelay = 150;
+
+		this.dragonSprite = document.getElementById("dragonSprite");
+		this.playerSprite = document.getElementById("playerSprite");
+
+		this.view  = new maze.View(this.model, this.dragonSprite, this.playerSprite);
+		this.stepDelay = 300;
 
 		$(window).resize(_.bind(function() {
 			this.view.resizeCanvas();
@@ -93,9 +97,11 @@
 	};
 
 	maze.Controller.prototype.step = function() {
-		if (this.model.player1Cell === this.model.dragonSpawn) { //winning the maze
+		if(this.model.player1Cell === this.model.dragonSpawn) { //winning the maze
+			window.clearInterval(this.interval);
+			this.interval = null;
 			this.model = new maze.Model(this.setup);
-			this.view = new maze.View(this.model);
+			this.view = new maze.View(this.model, this.dragonSprite, this.playerSprite);
 			this.interval = window.setInterval(_.bind(this.step, this), this.stepDelay);
 		}
 		this.model.step();

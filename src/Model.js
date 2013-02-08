@@ -88,51 +88,64 @@
 		if(this.player1Cell === this.dragonCell) {
 			this.player1Cell = this.player1Spawn;
 		}
-		//chooses the next cell the dragon will travel to
 
-		var neighborXdistances = [];
-		var neighborYdistances = [];
+		//chooses the next cell the dragon will travel to using Dijkstra's algorithm
 
-		_.each(this.getNeighbors(this.dragonCell), function(neighbor) {
-			neighborXdistances.push(Math.abs(neighbor.getLocation()[0] - this.player1Cell.getLocation()[0])); 
-			neighborYdistances.push(Math.abs(neighbor.getLocation()[1] - this.player1Cell.getLocation()[1]));
+		var unvisited = _.clone(this.grid);
+		var currentNode = this.player1Cell;
+		var grid = this.grid;
+
+		var distances = {};
+		_.each(this.grid, function(cell) {
+			distances[cell.getLocation()] = Infinity;
 		}, this);
 
-		var shortestXdistance = neighborXdistances[0];
-		_.each(neighborXdistances, function(distance) {
-			if(distance < shortestXdistance) {
-				shortestXdistance = distance;
-			}
-		});
+		var paths = {};
+		_.each(this.grid, function(cell) {
+			paths[cell.getLocation()] = currentNode.getLocation();
+		}, this);
 
-		var shortestYdistance = neighborYdistances[0];
-		_.each(neighborYdistances, function(distance) {
-			if(distance < shortestYdistance) {
-				shortestYdistance = distance;
-			}
-		});
+		distances[currentNode.getLocation()] = 0;
 
-		if(shortestXdistance < shortestYdistance) {
-			var nextDragonCell = this.getNeighbors(this.dragonCell)[neighborYdistances.indexOf(shortestYdistance)];			
-		} else {
-			var nextDragonCell = this.getNeighbors(this.dragonCell)[neighborXdistances.indexOf(shortestXdistance)];
+		while(!_.isEmpty(unvisited)) {
+			_.chain(currentNode.walls)
+				.pairs()
+				.reject(function(wall) {
+					return wall[1]; 
+				}) //up to this point the chain returns an array of
+				   //the directions around the current cell without walls
+				.flatten()
+				.filter(function(value) { //reject the "false" items from the array
+					return value;
+				}) 
+				.map(function(coordinate){
+					//make the coordinates arrays of numbers instead of strings
+					var offset = [Number(coordinate.split(",")[0]), Number(coordinate.split(",")[1])];
+					//map directions to cells in the grid
+					return grid[_.add(offset, currentNode.getLocation())];
+				})
+				.compact()
+				//for each of the reachable neighbors, calculate the distance
+				.each(function(neighbor) {
+					var distance = distances[currentNode.getLocation()] + 1;
+					if(distance < distances[neighbor.getLocation()]) {
+						distances[neighbor.getLocation()] = distance;
+						paths[neighbor.getLocation()] = currentNode.getLocation();
+					}
+				});
 
+			delete unvisited[currentNode.getLocation()];
+
+			//the next current node will be the one with the smallest distance in unvisited
+			var smallest = [Infinity];
+			_.each(unvisited, function(val, key) {
+				if(distances[key] < smallest[0]) {
+					smallest = [distances[key], key];
+				}
+			});
+
+			currentNode = unvisited[smallest[1]];
 		}
-		if(!nextDragonCell) {
-			_.pickRandom(this.getNeighbors(this.dragonCell));
-		}
-
-
-		var x = nextDragonCell.getLocation()[0] - this.dragonCell.getLocation()[0];
-		var y = nextDragonCell.getLocation()[1] - this.dragonCell.getLocation()[1];
-		if(Math.random() < 0.15) {
-			this.dragonCell.walls[[x, y]] = false;
-			nextDragonCell.walls[[-x, -y]] = false;
-		}
-		//the dragon moves to the next cell if there is not a wall between the dragon and it
-		if(!this.dragonCell.walls[[x, y]]) {
-			this.dragonCell = nextDragonCell;
-		}
+		this.dragonCell = grid[paths[this.dragonCell.getLocation()]]
 	};
-
 }());
