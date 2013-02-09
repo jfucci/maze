@@ -26,6 +26,7 @@
 		var cellStack    = [];
 		var totalCells   = this.getGridHeight() * this.getGridWidth();
 		var visitedCells = 1;
+		var wallsToDestroy = 5;
 
 		while(visitedCells < totalCells) {
 			var intactNeighbors = _.filter(this.getNeighbors(currentCell), function(cell) {
@@ -43,6 +44,37 @@
 				currentCell = cellStack.pop();
 			}
 		}
+
+		while(wallsToDestroy >= 0) {
+			var randomCell = _.pickRandom(this.grid);
+			//implement the following better? it simply ignores the cell if it is on the edge because 
+			//picking a random wall could pick an edge and crash the program at "this.manipulateWall"
+			if (randomCell.getLocation()[0] === this.getGridWidth() - 1 || 
+				randomCell.getLocation()[0] === 0 || 
+				randomCell.getLocation()[1] === this.getGridHeight() - 1 || 
+				randomCell.getLocation()[1] === 0) {
+				continue;
+			} else {
+				var randomWall = _.chain(randomCell.walls).map(function(val, key) {
+									if(val) {
+										return key;
+									} else{
+										return undefined;
+									}
+								}).compact().pickRandom().value();
+				var x = Number(randomWall.split(",")[0]);
+				var y = Number(randomWall.split(",")[1]);
+				console.log(randomCell.getLocation() + " " + randomWall);
+				this.manipulateWall(randomCell, x, y);
+				wallsToDestroy--;
+			}
+		}
+	};
+
+	maze.Model.prototype.manipulateWall = function(cell, x, y) {
+		cell.walls[[x,y]] = !cell.walls[[x,y]];
+		var neighbor = this.grid[[cell.getLocation()[0] + x, cell.getLocation()[1] + y]];
+		neighbor.walls[[-x, -y]] = !neighbor.walls[[-x, -y]];
 	};
 
 	maze.Model.prototype.getNeighbors = function(cell) {

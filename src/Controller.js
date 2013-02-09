@@ -31,19 +31,19 @@
 				switch(key) {
 					case 37: //left
 					case 65: //A
-						this.manipulateWall(this.view.playerSelectedCell, -1, 0);
+						this.model.manipulateWall(this.view.playerSelectedCell, -1, 0);
 						break;
 					case 38: //up
 					case 87: //W
-						this.manipulateWall(this.view.playerSelectedCell, 0, -1);
+						this.model.manipulateWall(this.view.playerSelectedCell, 0, -1);
 						break;
 					case 39: //right
 					case 68: //D
-						this.manipulateWall(this.view.playerSelectedCell, 1, 0);
+						this.model.manipulateWall(this.view.playerSelectedCell, 1, 0);
 						break;
 					case 40: //down
 					case 83: //S
-						this.manipulateWall(this.view.playerSelectedCell, 0, 1);
+						this.model.manipulateWall(this.view.playerSelectedCell, 0, 1);
 						break;
 				}
 
@@ -79,12 +79,6 @@
 		}, this));
 	
 		this.interval = window.setInterval(_.bind(this.step, this), this.stepDelay);
-	};
-
-	maze.Controller.prototype.manipulateWall = function(cell, x, y) {
-		cell.walls[[x,y]] = !cell.walls[[x,y]];
-		var neighbor = this.model.grid[[cell.getLocation()[0] + x, cell.getLocation()[1] + y]];
-		neighbor.walls[[-x, -y]] = !neighbor.walls[[-x, -y]];
 	};
 
 	maze.Controller.prototype.movePlayer = function(x, y) {
