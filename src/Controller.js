@@ -9,20 +9,23 @@
 	maze.Controller = function() {
 		this.setup = {
 			gridHeight: 20, //number of cells per column
-			gridWidth: 30   //number of cells per row
+			gridWidth: 30,  //number of cells per row
+			numEnemies: 3   //number of enemies in the game
 		};
 		
 		this.model = new maze.Model(this.setup);
-
-		this.dragonSprite = document.getElementById("dragonSprite");
-		this.playerSprite = document.getElementById("playerSprite");
-
-		this.view  = new maze.View(this.model, this.dragonSprite, this.playerSprite);
+		this.view  = new maze.View(this.model);
 		this.stepDelay = 300;
+		this.steps = 0;
 
-		$(window).resize(_.bind(function() {
-			this.view.resizeCanvas();
-		}, this));
+		$('#viewport').dragscrollable();
+
+		var that = this;
+		
+		$('#canvas').bind("contextmenu",function(e){
+			that.view._mouseClick(e);
+   			return false;
+		}); 
 
 		$(document).keydown(_.bind(function (e) {
 			var key = e.which;
@@ -72,10 +75,10 @@
 			this.view.update();
 
 			//prevent the page from capturing the arrow keys 
-	 		//so the page doesn't scroll when they are pressed
+			//so the page doesn't scroll when they are pressed
 			if (key >= 37 && key <= 40) {
-     		   return false;
-    		}
+				return false;
+			}
 		}, this));
 	
 		this.interval = window.setInterval(_.bind(this.step, this), this.stepDelay);
@@ -91,15 +94,15 @@
 	};
 
 	maze.Controller.prototype.step = function() {
-		if(this.model.player1Cell === this.model.dragonSpawn) { //winning the maze
+		if(this.model.player1Cell === this.model.enemySpawn) { //winning the maze
 			window.clearInterval(this.interval);
 			this.interval = null;
 			this.model = new maze.Model(this.setup);
-			this.view = new maze.View(this.model, this.dragonSprite, this.playerSprite);
+			this.view = new maze.View(this.model);
 			this.interval = window.setInterval(_.bind(this.step, this), this.stepDelay);
+			this.steps = 0;
 		}
 		this.model.step();
 		this.view.update();
 	};
-
 }());

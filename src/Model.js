@@ -7,16 +7,21 @@
 		this.getGridHeight = _.constant(setup.gridHeight);
 		var coordinates    = _.product([_.range(this.getGridWidth()), _.range(this.getGridHeight())]);
 		this.grid          = {};
+		this.steps         = 0;
 
 		_.each(coordinates, function(coordinate) {
 			this.grid[coordinate] = new maze.Cell(coordinate[0], coordinate[1]);
 		}, this);
 
 		this.player1Spawn = this.grid[[0,0]];
-		this.dragonSpawn = this.grid[[(this.getGridWidth() - 1), (this.getGridHeight() - 1)]];
+		this.enemySpawn = this.grid[[(this.getGridWidth() - 1), (this.getGridHeight() - 1)]];
 		
 		this.player1Cell = this.player1Spawn;
-		this.dragonCell = this.dragonSpawn;
+		
+		this.enemies = [];
+		for(var i = 0; i < setup.numEnemies; i++) {
+			this.enemies.push(new maze.Enemy(this.enemySpawn.getLocation(), i*0.1)); //i*0.2 + 0.25
+		}
 
 		this.generate();
 	};
@@ -26,12 +31,10 @@
 		var cellStack    = [];
 		var totalCells   = this.getGridHeight() * this.getGridWidth();
 		var visitedCells = 1;
-		var wallsToDestroy = 5;
+		var wallsToDestroy = totalCells * 0.05; //10% of total cells should be destroyed
 
 		while(visitedCells < totalCells) {
-			var intactNeighbors = _.filter(this.getNeighbors(currentCell), function(cell) {
-				return cell.allWallsIntact();
-			});
+			var intactNeighbors = this.getWalledNeighbors(currentCell);
 			if(intactNeighbors.length > 0) {
 				var newCell = _.pickRandom(intactNeighbors);
 
@@ -47,28 +50,28 @@
 
 		while(wallsToDestroy >= 0) {
 			var randomCell = _.pickRandom(this.grid);
-			//implement the following better? it simply ignores the cell if it is on the edge because 
-			//picking a random wall could pick an edge and crash the program at "this.manipulateWall"
-			if (randomCell.getLocation()[0] === this.getGridWidth() - 1 || 
-				randomCell.getLocation()[0] === 0 || 
-				randomCell.getLocation()[1] === this.getGridHeight() - 1 || 
-				randomCell.getLocation()[1] === 0) {
-				continue;
-			} else {
+			if(!this.isEdgeCell(randomCell)) {
 				var randomWall = _.chain(randomCell.walls).map(function(val, key) {
 									if(val) {
 										return key;
-									} else{
+									} else {
 										return undefined;
 									}
 								}).compact().pickRandom().value();
-				var x = Number(randomWall.split(",")[0]);
-				var y = Number(randomWall.split(",")[1]);
-				console.log(randomCell.getLocation() + " " + randomWall);
-				this.manipulateWall(randomCell, x, y);
-				wallsToDestroy--;
+				if(randomWall !== undefined) {
+					var x = Number(randomWall.split(",")[0]);
+					var y = Number(randomWall.split(",")[1]);
+					this.manipulateWall(randomCell, x, y);
+					wallsToDestroy--;
+				}
 			}
 		}
+	};
+
+	maze.Model.prototype.getWalledNeighbors = function(cell) {
+		return _.filter(this.getNeighbors(cell), function(neighbor) {
+				return neighbor.allWallsIntact();
+			});
 	};
 
 	maze.Model.prototype.manipulateWall = function(cell, x, y) {
@@ -84,12 +87,15 @@
 		}).compact().value();
 	};
 
+	maze.Model.prototype.isEdgeCell = function(cell) {
+		return this.getNeighbors(cell).length < 4;
+	};
+
 	maze.Cell = function(x, y) {
-		this.backtracks  = maze.createDirectionFlags();
-		this.solutions   = maze.createDirectionFlags();
 		this.borders     = maze.createDirectionFlags();
 		this.walls       = maze.createDirectionFlags();
 		this.getLocation = _.constant([x, y]);
+		this.parentCell  = null;
 	};
 
 	maze.Cell.prototype.allWallsIntact = function() {
@@ -115,14 +121,38 @@
 		cellB.walls[directionFromB2A] = false;
 	};
 
+	maze.Model.prototype.getUnWalledNeighbors = function(cell) {
+		var grid = this.grid;
+		return _.chain(cell.walls)
+					.pairs()
+					.reject(function(wall) {
+						return wall[1]; 
+					})	//up to this point the chain returns an array of
+						//the directions around the current cell without walls
+					.flatten()
+					.filter(function(value) { //reject the "false" items from the array
+						return value;
+					}) 
+					.map(function(coordinate){
+						//make the coordinates arrays of numbers instead of strings
+						var offset = [Number(coordinate.split(",")[0]), Number(coordinate.split(",")[1])];
+						//map directions to cells in the grid
+						return grid[_.add(offset, cell.getLocation())];
+					})
+					.compact().value();
+	};
+
 	maze.Model.prototype.step = function() {
-		//if the player touches the dragon, they die and respawn
-		if(this.player1Cell === this.dragonCell) {
+		//if the player touches any enemy, they die and respawn
+		if (_.any(this.enemies, function(enemy) {
+			return this.player1Cell.getLocation()[0] === enemy.currentCell[0] && 
+				   this.player1Cell.getLocation()[1] === enemy.currentCell[1];
+		}, this)) {
 			this.player1Cell = this.player1Spawn;
 		}
 
-		//chooses the next cell the dragon will travel to using Dijkstra's algorithm
-
+		//calculates the paths between all the cells using Dijkstra's Algorithm:
+		
 		var unvisited = _.clone(this.grid);
 		var currentNode = this.player1Cell;
 		var grid = this.grid;
@@ -140,31 +170,13 @@
 		distances[currentNode.getLocation()] = 0;
 
 		while(!_.isEmpty(unvisited)) {
-			_.chain(currentNode.walls)
-				.pairs()
-				.reject(function(wall) {
-					return wall[1]; 
-				}) //up to this point the chain returns an array of
-				   //the directions around the current cell without walls
-				.flatten()
-				.filter(function(value) { //reject the "false" items from the array
-					return value;
-				}) 
-				.map(function(coordinate){
-					//make the coordinates arrays of numbers instead of strings
-					var offset = [Number(coordinate.split(",")[0]), Number(coordinate.split(",")[1])];
-					//map directions to cells in the grid
-					return grid[_.add(offset, currentNode.getLocation())];
-				})
-				.compact()
-				//for each of the reachable neighbors, calculate the distance
-				.each(function(neighbor) {
-					var distance = distances[currentNode.getLocation()] + 1;
-					if(distance < distances[neighbor.getLocation()]) {
-						distances[neighbor.getLocation()] = distance;
-						paths[neighbor.getLocation()] = currentNode.getLocation();
-					}
-				});
+			_.each(this.getUnWalledNeighbors(currentNode), function(neighbor) {
+				var distance = distances[currentNode.getLocation()] + 1;
+				if(distance < distances[neighbor.getLocation()]) {
+					distances[neighbor.getLocation()] = distance;
+					paths[neighbor.getLocation()] = currentNode.getLocation();
+				}
+			});
 
 			delete unvisited[currentNode.getLocation()];
 
@@ -178,6 +190,31 @@
 
 			currentNode = unvisited[smallest[1]];
 		}
-		this.dragonCell = grid[paths[this.dragonCell.getLocation()]]
+
+		//enemy movement:
+		_.each(this.enemies, function(enemy) {
+			enemy.previousCell = enemy.currentCell;
+			if(_.random(1) > enemy.pCorrectTurn && this.getUnWalledNeighbors(grid[enemy.currentCell]).length > 2) {
+				enemy.currentCell = _.pickRandom(this.getUnWalledNeighbors(grid[enemy.currentCell])).getLocation();
+			} else {
+				enemy.currentCell = grid[paths[enemy.currentCell]].getLocation();
+			}
+		}, this);
+
+		//idea: if the unwalledneighbors.length === 2, keep going in that direction
+
+		this.steps++;
 	};
+
+	maze.Enemy = function(spawn, pCorrectTurn) {
+		this.currentCell = spawn;
+		this.previousCell = [];
+		this.pCorrectTurn = pCorrectTurn; //the probability that the enemy will make the correct turn 
+										  //(i.e. the turn that will bring it closer to the player) at an intersection
+	};
+
+	maze.Enemy.prototype.getDirection = function() {
+		return [this.currentCell[0] - this.previousCell[0], this.currentCell[1] - this.previousCell[1]];
+	};
+
 }());

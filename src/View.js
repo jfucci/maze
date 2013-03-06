@@ -2,37 +2,57 @@
 (function() {
 	"use strict";
 
-	maze.View = function(model, dragonSprite, playerSprite) {
+	maze.View = function(model) {
 		this.model  = model;
 		this.canvas = $("#canvas");
-		this.dragonSprite = dragonSprite;
-		this.playerSprite = playerSprite;
 
-		this.resizeCanvas();
+		//set animations:
+		//the dragon animation was obtained and edited from
+		//http://forums.wesnoth.org/viewtopic.php?f=23&t=26202&start=30#p370377
+		this.enemyLeft = [];
+		for(var i = 0; i < 10; i++) {
+			this.enemyLeft.push(new Image());
+			this.enemyLeft[i].src = "sprites/dragon_flying_left/frame" + i + ".png";
+		}
 
-		this.canvas.click(_.bind(this._mouseClick, this));
-		//this.canvas.mousemove(_.bind(this._mouseMove, this));
+		this.enemyRight = [];
+		for(var i = 0; i < 10; i++) {
+			this.enemyRight.push(new Image());
+			this.enemyRight[i].src = "sprites/dragon_flying_right/frame" + i + ".png";
+		}
+
+		//set player image:
+		this.playerSprite = new Image();
+		this.playerSprite.src = "sprites/player.png";
+		
+		//set wall destroyer/maker image:
+		this.axeSprite = new Image();
+		//the axe image was obtained and edited from: http://www.minecraftopia.com/gold_pickaxe.html
+		this.axeSprite.src = "sprites/gold_pickaxe.png";
+
+		this.setupCanvas();
 	};
 
-	maze.View.prototype.resizeCanvas = function() {
-		var canvas_wrap = $("#canvas_wrap");
-		var height = canvas_wrap.innerHeight();
-		var width = (this.model.getGridWidth() * height) / this.model.getGridHeight();
-		this.canvas[0].width = width;
-		this.canvas[0].height = height;
-
+	maze.View.prototype.setupCanvas = function() {
 		this.ctx = this.canvas[0].getContext("2d");
 
+		var width = this.canvas.width();
+		var height = this.canvas.height();
+
 		this.ctx.scale(width, height);
-
 		this.pixel = 1 / width;
-
+		
 		this.update();
 	};
 
 	maze.View.prototype._mouseClick = function(event) {
-		this.playerSelectedCell = this.model.grid[[this.getCellXCoordinate(event), this.getCellYCoordinate(event)]];
+		if(this.playerSelectedCell) {
+			this.playerSelectedCell = null;
+		} else {
+			this.playerSelectedCell = this.model.grid[[this.getCellXCoordinate(event), this.getCellYCoordinate(event)]];
+		}
 		this.update();
+		return false;
 	};
 
 	maze.View.prototype.getCellXCoordinate = function(event) {
@@ -87,20 +107,21 @@
 
 		this._stroke(1 / 2, 'black');
 
-		this.drawSquare(this.model.dragonSpawn, "black");
-		this.drawSprite(this.model.player1Cell, this.playerSprite);
-		this.drawSprite(this.model.dragonCell, this.dragonSprite);
-
-		if(this.playerSelectedCell) {
-			this.drawSquare(this.playerSelectedCell, "green");
-		}
-
-		if(this.opponentSelectedCell) {
-			this.drawSquare(this.opponentSelectedCell, "red");
-		}
-
-	};
+		this.drawSquare(this.model.enemySpawn, "black");
+		this.drawSprite(this.model.player1Cell.getLocation(), this.playerSprite);
 		
+		_.each(this.model.enemies, function(enemy) {
+			if(enemy.getDirection()[0] > 0) {
+				this.drawSprite(enemy.currentCell, this.enemyRight[this.model.steps % this.enemyRight.length]);
+			} else {
+				this.drawSprite(enemy.currentCell, this.enemyLeft[this.model.steps % this.enemyLeft.length]);
+			}
+		}, this);
+		
+		if(this.playerSelectedCell) {
+			this.drawSprite(this.playerSelectedCell.getLocation(), this.axeSprite);
+		}
+	};
 
 	maze.View.prototype.drawWall = function(cell, startOffset, endOffset) {
 		var nudge  = this.pixel / 2;
@@ -127,12 +148,12 @@
 		this.ctx.fillRect(cell.getLocation()[0] / this.model.getGridWidth() + (1 / (10 * this.model.getGridWidth())), 
 			cell.getLocation()[1] / this.model.getGridHeight() + (1 / (10 * this.model.getGridHeight())), 
 			1 / (1.25 * this.model.getGridWidth()), 1 / (1.25 * this.model.getGridHeight()));
-	}
+	};
 
-	maze.View.prototype.drawSprite = function(cell, img) {
-		this.ctx.drawImage(img, cell.getLocation()[0] / this.model.getGridWidth() + (1 / (10 * this.model.getGridWidth())), 
-			cell.getLocation()[1] / this.model.getGridHeight() + (1 / (10 * this.model.getGridHeight())), 
-			1 / (1.25 * this.model.getGridWidth()), 1 / (1.25 * this.model.getGridHeight()))
-	}
+	maze.View.prototype.drawSprite = function(cellLocation, img) {
+		this.ctx.drawImage(img, cellLocation[0] / this.model.getGridWidth() + (1 / (10 * this.model.getGridWidth())), 
+			cellLocation[1] / this.model.getGridHeight() + (1 / (10 * this.model.getGridHeight())), 
+			1 / (1.25 * this.model.getGridWidth()), 1 / (1.25 * this.model.getGridHeight()));
+	};
 
 }());
