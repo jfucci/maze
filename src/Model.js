@@ -13,14 +13,14 @@
 			this.grid[coordinate] = new maze.Cell(coordinate[0], coordinate[1]);
 		}, this);
 
-		this.player1Spawn = this.grid[[0,0]];
-		this.enemySpawn = this.grid[[(this.getGridWidth() - 1), (this.getGridHeight() - 1)]];
+		this.player1Spawn = [0,0]; //top left cell
+		this.enemySpawn = [(this.getGridWidth() - 1), (this.getGridHeight() - 1)]; //bottom right cell. the objective.
 		
-		this.player1Cell = this.player1Spawn;
+		this.player1 = new maze.Creature(this.player1Spawn);
 		
 		this.enemies = [];
 		for(var i = 0; i < setup.numEnemies; i++) {
-			this.enemies.push(new maze.Enemy(this.enemySpawn.getLocation(), i*0.1)); //i*0.2 + 0.25
+			this.enemies.push(new maze.Enemy(this.enemySpawn, i*0.1));
 		}
 
 		this.generate();
@@ -31,7 +31,7 @@
 		var cellStack    = [];
 		var totalCells   = this.getGridHeight() * this.getGridWidth();
 		var visitedCells = 1;
-		var wallsToDestroy = totalCells * 0.05; //10% of total cells should be destroyed
+		var wallsToDestroy = totalCells * 0.05; //5% of total cells should have walls destroyed
 
 		while(visitedCells < totalCells) {
 			var intactNeighbors = this.getWalledNeighbors(currentCell);
@@ -123,6 +123,11 @@
 
 	maze.Model.prototype.getUnWalledNeighbors = function(cell) {
 		var grid = this.grid;
+
+		if(!cell) {
+			return null; //necessary if there is no path between the player and any enemy
+		}
+
 		return _.chain(cell.walls)
 					.pairs()
 					.reject(function(wall) {
@@ -142,41 +147,39 @@
 					.compact().value();
 	};
 
-	maze.Model.prototype.step = function() {
-		//if the player touches any enemy, they die and respawn
-		if (_.any(this.enemies, function(enemy) {
-			return this.player1Cell.getLocation()[0] === enemy.currentCell[0] && 
-				   this.player1Cell.getLocation()[1] === enemy.currentCell[1];
-		}, this)) {
-			this.player1Cell = this.player1Spawn;
+	//calculates the paths between all the cells using Dijkstra's Algorithm
+	maze.Model.prototype.calculatePaths = function() {
+		var grid = this.grid;
+		var unvisited = {};
+
+		for (var prop in grid) {
+			unvisited[prop] = grid[prop];
 		}
 
-		//calculates the paths between all the cells using Dijkstra's Algorithm:
-		
-		var unvisited = _.clone(this.grid);
-		var currentNode = this.player1Cell;
-		var grid = this.grid;
+		var currentNode = grid[this.player1.currentCell];	//start at the player's current cell; the algorithm 
+															//will branch out to find paths to the enemies
 
 		var distances = {};
 		_.each(this.grid, function(cell) {
 			distances[cell.getLocation()] = Infinity;
 		}, this);
 
-		var paths = {};
+		this.paths = {};
 		_.each(this.grid, function(cell) {
-			paths[cell.getLocation()] = currentNode.getLocation();
+			this.paths[cell.getLocation()] = currentNode.getLocation();
 		}, this);
 
 		distances[currentNode.getLocation()] = 0;
 
-		while(!_.isEmpty(unvisited)) {
+		//this.getUnWalledNeighbors(currentNode) will return null if there is no path between the player and any enemy
+		while(!_.isEmpty(unvisited) && this.getUnWalledNeighbors(currentNode)) { 
 			_.each(this.getUnWalledNeighbors(currentNode), function(neighbor) {
 				var distance = distances[currentNode.getLocation()] + 1;
 				if(distance < distances[neighbor.getLocation()]) {
 					distances[neighbor.getLocation()] = distance;
-					paths[neighbor.getLocation()] = currentNode.getLocation();
+					this.paths[neighbor.getLocation()] = currentNode.getLocation();
 				}
-			});
+			}, this);
 
 			delete unvisited[currentNode.getLocation()];
 
@@ -190,31 +193,29 @@
 
 			currentNode = unvisited[smallest[1]];
 		}
-
-		//enemy movement:
-		_.each(this.enemies, function(enemy) {
-			enemy.previousCell = enemy.currentCell;
-			if(_.random(1) > enemy.pCorrectTurn && this.getUnWalledNeighbors(grid[enemy.currentCell]).length > 2) {
-				enemy.currentCell = _.pickRandom(this.getUnWalledNeighbors(grid[enemy.currentCell])).getLocation();
-			} else {
-				enemy.currentCell = grid[paths[enemy.currentCell]].getLocation();
-			}
-		}, this);
-
-		//idea: if the unwalledneighbors.length === 2, keep going in that direction
-
-		this.steps++;
 	};
 
-	maze.Enemy = function(spawn, pCorrectTurn) {
+	maze.Model.prototype.moveCreature = function(creature, x, y) {
+		if(!this.grid[creature.currentCell].walls[[x, y]]) {
+			creature.currentCell = [creature.currentCell[0] + x, creature.currentCell[1] + y];
+		}
+	};
+
+	maze.Creature = function(spawn) {
 		this.currentCell = spawn;
-		this.previousCell = [];
-		this.pCorrectTurn = pCorrectTurn; //the probability that the enemy will make the correct turn 
-										  //(i.e. the turn that will bring it closer to the player) at an intersection
+		this.previousCell = [spawn];
 	};
 
-	maze.Enemy.prototype.getDirection = function() {
+	maze.Creature.prototype.getDirection = function() {
 		return [this.currentCell[0] - this.previousCell[0], this.currentCell[1] - this.previousCell[1]];
 	};
 
+	maze.Enemy = function(spawn, pCorrectTurn) {
+		maze.Creature.call(this, spawn); //call the Creature constructor
+		this.pCorrectTurn = pCorrectTurn;	//the probability that the enemy will make the correct turn 
+											//(i.e. the turn that will bring it closer to the player) at an intersection
+	};
+
+	maze.Enemy.prototype = new maze.Creature(); //Enemy inherits Creature
+	maze.Enemy.prototype.constructor = maze.Enemy; //else the Enemy constructor pointer will point to Creature
 }());

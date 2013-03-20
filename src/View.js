@@ -1,4 +1,4 @@
-/*global _:true, maze:true, $:true */
+/*global _:true, maze:true, $:true, Image:true */
 (function() {
 	"use strict";
 
@@ -6,26 +6,23 @@
 		this.model  = model;
 		this.canvas = $("#canvas");
 
-		//set animations:
 		//the dragon animation was obtained and edited from
 		//http://forums.wesnoth.org/viewtopic.php?f=23&t=26202&start=30#p370377
+		//set up enemy animations:
 		this.enemyLeft = [];
+		this.enemyRight = [];
 		for(var i = 0; i < 10; i++) {
 			this.enemyLeft.push(new Image());
 			this.enemyLeft[i].src = "sprites/dragon_flying_left/frame" + i + ".png";
-		}
-
-		this.enemyRight = [];
-		for(var i = 0; i < 10; i++) {
 			this.enemyRight.push(new Image());
 			this.enemyRight[i].src = "sprites/dragon_flying_right/frame" + i + ".png";
 		}
 
-		//set player image:
+		//set up player sprite:
 		this.playerSprite = new Image();
 		this.playerSprite.src = "sprites/player.png";
 		
-		//set wall destroyer/maker image:
+		//set wall tool sprite:
 		this.axeSprite = new Image();
 		//the axe image was obtained and edited from: http://www.minecraftopia.com/gold_pickaxe.html
 		this.axeSprite.src = "sprites/gold_pickaxe.png";
@@ -46,13 +43,13 @@
 	};
 
 	maze.View.prototype._mouseClick = function(event) {
-		if(this.playerSelectedCell) {
-			this.playerSelectedCell = null;
+		if(this.wallToolCell) {
+			this.wallToolCell = null;
 		} else {
-			this.playerSelectedCell = this.model.grid[[this.getCellXCoordinate(event), this.getCellYCoordinate(event)]];
+			this.wallToolCell = this.model.grid[[this.getCellXCoordinate(event), this.getCellYCoordinate(event)]];
 		}
 		this.update();
-		return false;
+		return false; //else the right click menu will spawn
 	};
 
 	maze.View.prototype.getCellXCoordinate = function(event) {
@@ -108,18 +105,18 @@
 		this._stroke(1 / 2, 'black');
 
 		this.drawSquare(this.model.enemySpawn, "black");
-		this.drawSprite(this.model.player1Cell.getLocation(), this.playerSprite);
+		this.drawSprite(this.model.player1.currentCell, this.playerSprite);
 		
 		_.each(this.model.enemies, function(enemy) {
-			if(enemy.getDirection()[0] > 0) {
+			if(enemy.getDirection()[0] > 0 || enemy.getDirection()[1] > 0) {
 				this.drawSprite(enemy.currentCell, this.enemyRight[this.model.steps % this.enemyRight.length]);
 			} else {
 				this.drawSprite(enemy.currentCell, this.enemyLeft[this.model.steps % this.enemyLeft.length]);
 			}
 		}, this);
 		
-		if(this.playerSelectedCell) {
-			this.drawSprite(this.playerSelectedCell.getLocation(), this.axeSprite);
+		if(this.wallToolCell) {
+			this.drawSprite(this.wallToolCell.getLocation(), this.axeSprite);
 		}
 	};
 
@@ -143,10 +140,10 @@
 		this.ctx.stroke();
 	};
 
-	maze.View.prototype.drawSquare = function(cell, color) {
+	maze.View.prototype.drawSquare = function(cellLocation, color) {
 		this.ctx.fillStyle = color;
-		this.ctx.fillRect(cell.getLocation()[0] / this.model.getGridWidth() + (1 / (10 * this.model.getGridWidth())), 
-			cell.getLocation()[1] / this.model.getGridHeight() + (1 / (10 * this.model.getGridHeight())), 
+		this.ctx.fillRect(cellLocation[0] / this.model.getGridWidth() + (1 / (10 * this.model.getGridWidth())), 
+			cellLocation[1] / this.model.getGridHeight() + (1 / (10 * this.model.getGridHeight())), 
 			1 / (1.25 * this.model.getGridWidth()), 1 / (1.25 * this.model.getGridHeight()));
 	};
 
@@ -154,6 +151,21 @@
 		this.ctx.drawImage(img, cellLocation[0] / this.model.getGridWidth() + (1 / (10 * this.model.getGridWidth())), 
 			cellLocation[1] / this.model.getGridHeight() + (1 / (10 * this.model.getGridHeight())), 
 			1 / (1.25 * this.model.getGridWidth()), 1 / (1.25 * this.model.getGridHeight()));
+	};
+
+	maze.View.prototype.moveCreature = function(creature, x, y) {
+		this.drawSquare(creature.currentCell, "white");
+		this.model.moveCreature(creature, x, y);
+
+		if(creature instanceof maze.Enemy) {
+			if(creature.getDirection()[0] > 0 || creature.getDirection()[1] > 0) {
+				this.drawSprite(creature.currentCell, this.enemyRight[this.model.steps % this.enemyRight.length]);
+			} else {
+				this.drawSprite(creature.currentCell, this.enemyLeft[this.model.steps % this.enemyLeft.length]);
+			}
+		} else {
+			this.drawSprite(creature.currentCell, this.playerSprite);
+		}
 	};
 
 }());
