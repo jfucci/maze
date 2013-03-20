@@ -9,7 +9,7 @@ W, A, S, D: movement (arrow keys work too, for lefties)
 
 primary click and drag: scroll the maze
 
-secondary click: place the wall tool (left click again removes it)
+secondary click: place the wall tool (secondary click again removes it)
 
 movement keys while the wall tool is placed: if a wall exists in the specified direction, destroy it; if not, build one
 
