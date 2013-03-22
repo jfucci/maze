@@ -28,65 +28,44 @@
 		});
 
 		//handler for all the keyboard input
+		this.directionsForKeys = {};
+		this.registerDirectionForKeys([37, 65], -1, 0); //left and A
+		this.registerDirectionForKeys([38, 87], 0, -1); //up and W
+		this.registerDirectionForKeys([39, 68], 1, 0);  //right and D
+		this.registerDirectionForKeys([40, 83], 0, 1);  //down and S
+
 		$(document).keydown(_.bind(function (e) {
 			var key = e.which;
-
-			if(this.view.wallToolCell) {
-				switch(key) {
-					case 37: //left
-					case 65: //A
-						this.model.manipulateWall(this.view.wallToolCell, -1, 0);
-						break;
-					case 38: //up
-					case 87: //W
-						this.model.manipulateWall(this.view.wallToolCell, 0, -1);
-						break;
-					case 39: //right
-					case 68: //D
-						this.model.manipulateWall(this.view.wallToolCell, 1, 0);
-						break;
-					case 40: //down
-					case 83: //S
-						this.model.manipulateWall(this.view.wallToolCell, 0, 1);
-						break;
+			
+			if(this.directionsForKeys[key]){
+				if(this.view.wallToolCell) {
+					this.model.manipulateWall(this.view.wallToolCell, this.directionsForKeys[key][0], this.directionsForKeys[key][1]);
+					this.view.wallToolCell = null;
+					this.view.update();
+				} else {
+					this.view.moveCreature(this.model.player1, this.directionsForKeys[key][0], this.directionsForKeys[key][1]);
 				}
 
-				this.view.wallToolCell = null;
-				this.view.update();
-			} else {
-				switch(key) {
-					case 37: //left
-					case 65: //A
-						this.view.moveCreature(this.model.player1, -1, 0);
-						break;
-					case 38: //up
-					case 87: //W
-						this.view.moveCreature(this.model.player1, 0, -1);
-						break;
-					case 39: //right
-					case 68: //D
-						this.view.moveCreature(this.model.player1, 1, 0);
-						break;
-					case 40: //down
-					case 83: //S
-						this.view.moveCreature(this.model.player1, 0, 1);
-						break;
+				this.model.calculatePaths();//any time the player presses a key (thereby changing the environment) 
+											//the paths for the enemies are recalculated
+
+				//prevent the page from capturing the arrow keys 
+				//so the page doesn't scroll when they are pressed
+				if (key >= 37 && key <= 40) {
+					return false;
 				}
-			}
-
-			this.model.calculatePaths();//any time the player presses a key (thereby changing the environment) 
-										//the paths for the enemies are recalculated
-
-			//prevent the page from capturing the arrow keys 
-			//so the page doesn't scroll when they are pressed
-			if (key >= 37 && key <= 40) {
-				return false;
 			}
 		}, this));
 	
 		this.model.calculatePaths(); 
 		this.interval = window.setInterval(_.bind(this.step, this), this.stepDelay);
 		this.view.update();
+	};
+
+	maze.Controller.prototype.registerDirectionForKeys = function(keys, xOff, yOff) {
+	    _.each(keys, function(key){
+			this.directionsForKeys[key] = [xOff, yOff];
+		}, this);
 	};
 
 	//executed once every second, handles winning the maze, player death, and enemy movement

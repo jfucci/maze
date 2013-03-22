@@ -9,25 +9,30 @@
 		//the dragon animation was obtained and edited from
 		//http://forums.wesnoth.org/viewtopic.php?f=23&t=26202&start=30#p370377
 		//set up enemy animations:
-		this.enemyLeft = [];
-		this.enemyRight = [];
-		for(var i = 0; i < 10; i++) {
-			this.enemyLeft.push(new Image());
-			this.enemyLeft[i].src = "sprites/dragon_flying_left/frame" + i + ".png";
-			this.enemyRight.push(new Image());
-			this.enemyRight[i].src = "sprites/dragon_flying_right/frame" + i + ".png";
-		}
+		this.setAnimation("enemyLeft", "sprites/dragon_flying_left/", 10);
+		this.setAnimation("enemyRight", "sprites/dragon_flying_right/", 10);
 
 		//set up player sprite:
-		this.playerSprite = new Image();
-		this.playerSprite.src = "sprites/player.png";
-		
+		this.setImage("playerSprite", "sprites/player.png");
+
 		//set wall tool sprite:
-		this.axeSprite = new Image();
 		//the axe image was obtained and edited from: http://www.minecraftopia.com/gold_pickaxe.html
-		this.axeSprite.src = "sprites/gold_pickaxe.png";
+		this.setImage("axeSprite", "sprites/gold_pickaxe.png");
 
 		this.setupCanvas();
+	};
+
+	maze.View.prototype.setImage = function(varName, imgLocation) {
+		this[varName] = new Image();
+		this[varName].src = imgLocation;
+	};
+
+	maze.View.prototype.setAnimation = function(animName, folder, numFrames) {
+		this[animName] = [];
+		for(var i = 0; i < numFrames; i++) {
+			this[animName][i] = new Image();
+			this[animName][i].src = folder + "frame" + i + ".png"; //all image names have the form "frame#.png"
+		}
 	};
 
 	maze.View.prototype.setupCanvas = function() {
@@ -108,11 +113,7 @@
 		this.drawSprite(this.model.player1.currentCell, this.playerSprite);
 		
 		_.each(this.model.enemies, function(enemy) {
-			if(enemy.getDirection()[0] > 0 || enemy.getDirection()[1] > 0) {
-				this.drawSprite(enemy.currentCell, this.enemyRight[this.model.steps % this.enemyRight.length]);
-			} else {
-				this.drawSprite(enemy.currentCell, this.enemyLeft[this.model.steps % this.enemyLeft.length]);
-			}
+			this.drawEnemy(enemy);
 		}, this);
 		
 		if(this.wallToolCell) {
@@ -140,17 +141,27 @@
 		this.ctx.stroke();
 	};
 
+
 	maze.View.prototype.drawSquare = function(cellLocation, color) {
-		this.ctx.fillStyle = color;
-		this.ctx.fillRect(cellLocation[0] / this.model.getGridWidth() + (1 / (10 * this.model.getGridWidth())), 
-			cellLocation[1] / this.model.getGridHeight() + (1 / (10 * this.model.getGridHeight())), 
-			1 / (1.25 * this.model.getGridWidth()), 1 / (1.25 * this.model.getGridHeight()));
+	  this.ctx.fillStyle = color;
+	  this.drawRectOrSprite(null, cellLocation);
 	};
 
 	maze.View.prototype.drawSprite = function(cellLocation, img) {
-		this.ctx.drawImage(img, cellLocation[0] / this.model.getGridWidth() + (1 / (10 * this.model.getGridWidth())), 
-			cellLocation[1] / this.model.getGridHeight() + (1 / (10 * this.model.getGridHeight())), 
-			1 / (1.25 * this.model.getGridWidth()), 1 / (1.25 * this.model.getGridHeight()));
+	    this.drawRectOrSprite(img, cellLocation);
+	};
+
+	maze.View.prototype.drawRectOrSprite = function(imgOrNull, cellLocation) {
+		var x = cellLocation[0] / this.model.getGridWidth() + (1 / (10 * this.model.getGridWidth())),
+			y = cellLocation[1] / this.model.getGridHeight() + (1 / (10 * this.model.getGridHeight())),
+			w = 1 / (1.25 * this.model.getGridWidth()),
+			h =	1 / (1.25 * this.model.getGridHeight());
+
+		if(imgOrNull !== null) {
+			this.ctx.drawImage(imgOrNull, x, y, w, h);
+		} else {
+			this.ctx.fillRect(x, y, w, h);
+		}
 	};
 
 	maze.View.prototype.moveCreature = function(creature, x, y) {
@@ -158,14 +169,15 @@
 		this.model.moveCreature(creature, x, y);
 
 		if(creature instanceof maze.Enemy) {
-			if(creature.getDirection()[0] > 0 || creature.getDirection()[1] > 0) {
-				this.drawSprite(creature.currentCell, this.enemyRight[this.model.steps % this.enemyRight.length]);
-			} else {
-				this.drawSprite(creature.currentCell, this.enemyLeft[this.model.steps % this.enemyLeft.length]);
-			}
+			this.drawEnemy(creature);
 		} else {
 			this.drawSprite(creature.currentCell, this.playerSprite);
 		}
+	};
+
+	maze.View.prototype.drawEnemy = function(enemy) {
+	    var spriteList = _.max(enemy.getDirection()) > 0 ? this.enemyRight : this.enemyLeft;
+	    this.drawSprite(enemy.currentCell, spriteList[this.model.steps % spriteList.length]);
 	};
 
 }());
