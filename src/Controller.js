@@ -15,7 +15,7 @@
 		
 		this.model = new maze.Model(this.setup);
 		this.view  = new maze.View(this.model);
-		this.stepDelay = 300;
+		this.stepDelay = 30;
 
 		$('#viewport').dragscrollable(); //enables click and drag on the maze
 
@@ -39,21 +39,19 @@
 			
 			if(this.directionsForKeys[key]){
 				if(this.view.wallToolCell) {
-					this.model.manipulateWall(this.view.wallToolCell, this.directionsForKeys[key][0], this.directionsForKeys[key][1]);
+					this.model.manipulateWall(this.view.wallToolCell, this.directionsForKeys[key]);
 					this.view.wallToolCell = null;
 					this.view.update();
 				} else {
-					this.view.moveCreature(this.model.player1, this.directionsForKeys[key][0], this.directionsForKeys[key][1]);
+					this.model.moveCreature(this.model.player1, this.directionsForKeys[key], 1);
 				}
 
 				this.model.calculatePaths();//any time the player presses a key (thereby changing the environment) 
 											//the paths for the enemies are recalculated
 
-				//prevent the page from capturing the arrow keys 
-				//so the page doesn't scroll when they are pressed
-				if (key >= 37 && key <= 40) {
-					return false;
-				}
+				//prevent the page from capturing keys 
+				//so the page doesn't scroll when they (in particular the arrow keys) are pressed
+				return false;
 			}
 		}, this));
 	
@@ -63,12 +61,11 @@
 	};
 
 	maze.Controller.prototype.registerDirectionForKeys = function(keys, xOff, yOff) {
-	    _.each(keys, function(key){
+		_.each(keys, function(key){
 			this.directionsForKeys[key] = [xOff, yOff];
 		}, this);
 	};
 
-	//executed once every second, handles winning the maze, player death, and enemy movement
 	maze.Controller.prototype.step = function() {
 		//if the player wins the maze, reset. 
 		//*broken* currently for reasons unknown 
@@ -82,31 +79,7 @@
 			this.model.steps = 0;
 		}
 
-		//if the player touches any enemy, they die and respawn
-		if (_.any(this.model.enemies, function(enemy) {
-			return this.model.player1.currentCell[0] === enemy.currentCell[0] &&
-				this.model.player1.currentCell[1] === enemy.currentCell[1];
-		}, this)) {
-			this.view.moveCreature(this.model.player1, this.model.player1Spawn[0] - this.model.player1.currentCell[0],
-				this.model.player1Spawn[1] - this.model.player1.currentCell[1]);
-			this.model.calculatePaths();
-		}
-
-		var newEnemyCell;
-
-		//enemy movement:
-		_.each(this.model.enemies, function(enemy) {
-			enemy.previousCell = enemy.currentCell;
-			if(_.random(1) > enemy.pCorrectTurn && this.model.getUnWalledNeighbors(this.model.grid[enemy.currentCell]).length > 2) {
-				newEnemyCell = _.pickRandom(this.model.getUnWalledNeighbors(this.model.grid[enemy.currentCell])).getLocation();
-			} else {
-				newEnemyCell = this.model.grid[this.model.paths[enemy.currentCell]].getLocation();
-			}
-			this.view.moveCreature(enemy, newEnemyCell[0] - enemy.currentCell[0], newEnemyCell[1] - enemy.currentCell[1]);
-		}, this);
-
-		//idea: if the unwalledneighbors.length === 2, keep going in that direction
-
-		this.model.steps++;
+		this.model.step();
+		this.view.update();
 	};
 }());

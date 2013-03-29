@@ -1,9 +1,9 @@
 maze
-====
+----
 Escape the dragons by getting to the exit in the bottom right of the maze.
 
 Controls
----------
+========
 
 W, A, S, D: movement (arrow keys work too, for lefties)
 
@@ -15,11 +15,7 @@ movement keys while the wall tool is placed: if a wall exists in the specified d
 
 
 Todo (in order of importance)
-------------------------------
-
--smooth movement
-
--show the player sprite at the start of the maze
+=============================
 
 -implement a better search algorithm (A* or D* Lite, perhaps)
 

@@ -143,12 +143,12 @@
 
 
 	maze.View.prototype.drawSquare = function(cellLocation, color) {
-	  this.ctx.fillStyle = color;
-	  this.drawRectOrSprite(null, cellLocation);
+		this.ctx.fillStyle = color;
+		this.drawRectOrSprite(null, cellLocation);
 	};
 
 	maze.View.prototype.drawSprite = function(cellLocation, img) {
-	    this.drawRectOrSprite(img, cellLocation);
+		this.drawRectOrSprite(img, cellLocation);
 	};
 
 	maze.View.prototype.drawRectOrSprite = function(imgOrNull, cellLocation) {
@@ -164,20 +164,12 @@
 		}
 	};
 
-	maze.View.prototype.moveCreature = function(creature, x, y) {
-		this.drawSquare(creature.currentCell, "white");
-		this.model.moveCreature(creature, x, y);
-
-		if(creature instanceof maze.Enemy) {
-			this.drawEnemy(creature);
-		} else {
-			this.drawSprite(creature.currentCell, this.playerSprite);
-		}
-	};
-
 	maze.View.prototype.drawEnemy = function(enemy) {
-	    var spriteList = _.max(enemy.getDirection()) > 0 ? this.enemyRight : this.enemyLeft;
-	    this.drawSprite(enemy.currentCell, spriteList[this.model.steps % spriteList.length]);
+		var spriteList = _.max(enemy.getDirection()) > 0 ? this.enemyRight : this.enemyLeft;
+
+		//_.add in order to add an offset for each dragon. -0.1 because the pCorrectTurns are 0, 0.1, and 0.2
+		//(the offsets will be -0.1, 0, and 0.1) and *0.5 because 0.1 was too big an offset
+		this.drawSprite(_.add(enemy.currentCell, (enemy.pCorrectTurn-0.1)*0.5), spriteList[this.model.steps % spriteList.length]);
 	};
 
 }());

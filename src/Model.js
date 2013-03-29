@@ -195,9 +195,39 @@
 		}
 	};
 
-	maze.Model.prototype.moveCreature = function(creature, x, y) {
-		if(!this.grid[creature.currentCell].walls[[x, y]]) {
-			creature.currentCell = [creature.currentCell[0] + x, creature.currentCell[1] + y];
+	//executed once every second, handles player death and enemy movement
+	maze.Model.prototype.step = function() {
+		//if the player touches any enemy, they die and respawn
+		if (_.any(this.enemies, function(enemy) {
+			return this.player1.currentCell[0] === enemy.currentCell[0] &&
+				this.player1.currentCell[1] === enemy.currentCell[1];
+		}, this)) {
+			this.player1.currentCell = this.player1Spawn;
+			this.calculatePaths();
+		}			
+
+		//enemy movement:
+		_.each(this.enemies, function(enemy) {
+			if(enemy.currentCell[0] % 1 === 0 && enemy.currentCell[1] % 1 === 0) {
+				enemy.previousCell = enemy.currentCell;
+				if(_.random(1) > enemy.pCorrectTurn && this.getUnWalledNeighbors(this.grid[enemy.currentCell]).length > 2) {
+					enemy.target = _.pickRandom(this.getUnWalledNeighbors(this.grid[enemy.currentCell])).getLocation();
+				} else {
+					enemy.target = this.paths[enemy.roundCurrentCell()];
+				} 
+			} 
+			//sets the current cell to current cell +- 0.1 in the direction of the target cell
+			enemy.move(_.multiply(_.subtract(enemy.target, enemy.roundCurrentCell()), 0.1), 1);
+		}, this);
+			
+		//idea: if the unwalledneighbors.length === 2, keep going in that direction
+		
+		this.steps++;
+	};
+
+	maze.Model.prototype.moveCreature = function(creature, direction) {
+		if(!this.grid[creature.roundCurrentCell()].walls[direction]) { 
+			creature.currentCell = _.add(creature.currentCell, direction);
 		}
 	};
 
@@ -206,8 +236,16 @@
 		this.previousCell = [spawn];
 	};
 
+	maze.Creature.prototype.roundCurrentCell = function() {
+		if(this.previousCell[0] < this.currentCell[0] || this.previousCell[1] < this.currentCell[1]) {
+			return _.vectorFloor(this.currentCell);
+		} else {
+			return _.vectorCeiling(this.currentCell);
+		}
+	};
+
 	maze.Creature.prototype.getDirection = function() {
-		return [this.currentCell[0] - this.previousCell[0], this.currentCell[1] - this.previousCell[1]];
+		return _.subtract(this.currentCell, this.previousCell);
 	};
 
 	maze.Enemy = function(spawn, pCorrectTurn) {
@@ -218,4 +256,12 @@
 
 	maze.Enemy.prototype = new maze.Creature(); //Enemy inherits Creature
 	maze.Enemy.prototype.constructor = maze.Enemy; //else the Enemy constructor pointer will point to Creature
+
+	maze.Enemy.prototype.move = function(direction, decPlaces) {
+		this.currentCell = _.add(this.currentCell, direction);
+		this.currentCell[0] = Number(this.currentCell[0].toFixed(decPlaces));
+		this.currentCell[1] = Number(this.currentCell[1].toFixed(decPlaces));
+	};
+
+
 }());

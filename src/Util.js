@@ -70,6 +70,26 @@
     utils.subtract = function(vecA, vecB){
       return _.add(vecA, _.multiply(vecB, -1));
     };
+
+	utils.vectorCeiling = function(vecA) {
+		return _.map(vecA, function(value, key){
+			if(value < 0) {
+				return Math.floor(value);
+			} else {
+				return Math.ceil(value);
+			}
+		});
+	};
+
+	utils.vectorFloor = function(vecA) {
+		return _.map(vecA, function(value, key){
+			if(value < 0) {
+				return Math.ceil(value);
+			} else {
+				return Math.floor(value);
+			}
+		});
+	};
     
     _.mixin(utils);
 
