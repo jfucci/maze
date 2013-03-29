@@ -74,10 +74,10 @@
 			});
 	};
 
-	maze.Model.prototype.manipulateWall = function(cell, x, y) {
-		cell.walls[[x,y]] = !cell.walls[[x,y]];
-		var neighbor = this.grid[[cell.getLocation()[0] + x, cell.getLocation()[1] + y]];
-		neighbor.walls[[-x, -y]] = !neighbor.walls[[-x, -y]];
+	maze.Model.prototype.manipulateWall = function(cell, direction) {
+		cell.walls[direction] = !cell.walls[direction];
+		var neighbor = this.grid[_.add(cell.getLocation(), direction)];
+		neighbor.walls[_.multiply(direction, -1)] = !neighbor.walls[_.multiply(direction, -1)];
 	};
 
 	maze.Model.prototype.getNeighbors = function(cell) {
