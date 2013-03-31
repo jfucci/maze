@@ -41,13 +41,16 @@
 				if(this.view.wallToolCell) {
 					this.model.manipulateWall(this.view.wallToolCell, this.directionsForKeys[key]);
 					this.view.wallToolCell = null;
-					this.view.update();
+					this.model.calculatePaths(); 	//any time the player changes a wall
+													//the paths for the enemies are recalculated
+
 				} else {
+					var oldP1Cell = this.model.player1.currentCell;
 					this.view.movePlayer(this.model.player1, this.directionsForKeys[key], 1);
+					this.model.paths[oldP1Cell] = this.model.player1.currentCell;
 				}
 
-				this.model.calculatePaths();//any time the player presses a key (thereby changing the environment) 
-											//the paths for the enemies are recalculated
+				this.view.update();
 
 				//prevent the page from capturing keys 
 				//so the page doesn't scroll when they (in particular the arrow keys) are pressed
