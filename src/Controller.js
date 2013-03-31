@@ -43,7 +43,7 @@
 					this.view.wallToolCell = null;
 					this.view.update();
 				} else {
-					this.model.moveCreature(this.model.player1, this.directionsForKeys[key], 1);
+					this.view.movePlayer(this.model.player1, this.directionsForKeys[key], 1);
 				}
 
 				this.model.calculatePaths();//any time the player presses a key (thereby changing the environment) 
@@ -69,14 +69,20 @@
 	maze.Controller.prototype.step = function() {
 		//if the player wins the maze, reset. 
 		//*broken* currently for reasons unknown 
-		if(this.model.player1.currentCell[0] === this.model.enemySpawn[0] &&
-			this.model.player1.currentCell[1] === this.model.enemySpawn[1]) {
+		if(_.arrayEquals(this.model.player1.currentCell, this.model.enemySpawn)) {
 			window.clearInterval(this.interval);
 			this.interval = null;
 			this.model = new maze.Model(this.setup); //
 			this.view = new maze.View(this.model);   //these two lines might be why it breaks
 			this.interval = window.setInterval(_.bind(this.step, this), this.stepDelay);
 			this.model.steps = 0;
+		}
+
+		//if the player touches any enemy, they die and respawn
+		if(this.model.checkDeathByEnemy()) {
+			this.model.player1.currentCell = this.model.player1Spawn;
+			this.view.resetScroll();
+			this.model.calculatePaths();
 		}
 
 		this.model.step();

@@ -5,6 +5,8 @@
 	maze.View = function(model) {
 		this.model  = model;
 		this.canvas = $("#canvas");
+		this.viewport = document.getElementById("viewport");
+		this.canvasScale = 58.4; //arbitrary number (but the .4 keeps the wall lines sharp for whatever reason)
 
 		//the dragon animation was obtained and edited from
 		//http://forums.wesnoth.org/viewtopic.php?f=23&t=26202&start=30#p370377
@@ -38,8 +40,11 @@
 	maze.View.prototype.setupCanvas = function() {
 		this.ctx = this.canvas[0].getContext("2d");
 
-		var width = this.canvas.width();
-		var height = this.canvas.height();
+		var width = this.model.getGridWidth()*this.canvasScale;
+		var height = this.model.getGridHeight()*this.canvasScale;
+
+		this.canvas[0].width = width;
+		this.canvas[0].height = height;
 
 		this.ctx.scale(width, height);
 		this.pixel = 1 / width;
@@ -170,6 +175,32 @@
 		//_.add in order to add an offset for each dragon. -0.1 because the pCorrectTurns are 0, 0.1, and 0.2
 		//(the offsets will be -0.1, 0, and 0.1) and *0.5 because 0.1 was too big an offset
 		this.drawSprite(_.add(enemy.currentCell, (enemy.pCorrectTurn-0.1)*0.5), spriteList[this.model.steps % spriteList.length]);
+	};
+
+	maze.View.prototype.movePlayer = function(player, direction){
+		if(this.model.isMoveValid(player, direction)) {
+			var cellWidth  = this.canvas.width() / this.model.getGridWidth(),
+				cellHeight = this.canvas.height() / this.model.getGridHeight(),
+				x          = player.currentCell[0] / this.model.getGridWidth(), 
+				y          = player.currentCell[1] / this.model.getGridHeight(),
+				relX       = x*this.canvas.width() - this.viewport.scrollLeft,
+				relY       = y*this.canvas.height() - this.viewport.scrollTop;
+
+			if(window.innerWidth/2 - cellWidth < relX && window.innerWidth/2 + cellWidth > relX) {
+				this.viewport.scrollLeft+=(direction[0]*cellWidth);
+			}
+
+			if(window.innerHeight/2 - cellWidth < relY && window.innerHeight/2 + cellWidth > relY) {
+				this.viewport.scrollTop+=(direction[1]*cellHeight);
+			}
+
+			player.move(direction);
+		}
+	};
+
+	maze.View.prototype.resetScroll = function() {
+		this.viewport.scrollLeft = 0;
+		this.viewport.scrollTop = 0;
 	};
 
 }());

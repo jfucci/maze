@@ -90,6 +90,18 @@
 			}
 		});
 	};
+
+	utils.arrayEquals = function(a1, a2) {
+		for(var i = 0; i < a1.length; i++) {
+			if(a1[i] !== a2[i]) {
+				return false;
+			}
+		}
+		if(i !== a2.length) {
+			return false;
+		}
+		return true;
+	};
     
     _.mixin(utils);
 

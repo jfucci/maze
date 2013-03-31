@@ -68,16 +68,8 @@
 		}
 	};
 
-	maze.Model.prototype.getWalledNeighbors = function(cell) {
-		return _.filter(this.getNeighbors(cell), function(neighbor) {
-				return neighbor.allWallsIntact();
-			});
-	};
-
-	maze.Model.prototype.manipulateWall = function(cell, direction) {
-		cell.walls[direction] = !cell.walls[direction];
-		var neighbor = this.grid[_.add(cell.getLocation(), direction)];
-		neighbor.walls[_.multiply(direction, -1)] = !neighbor.walls[_.multiply(direction, -1)];
+	maze.Model.prototype.isEdgeCell = function(cell) {
+		return this.getNeighbors(cell).length < 4;
 	};
 
 	maze.Model.prototype.getNeighbors = function(cell) {
@@ -87,38 +79,10 @@
 		}).compact().value();
 	};
 
-	maze.Model.prototype.isEdgeCell = function(cell) {
-		return this.getNeighbors(cell).length < 4;
-	};
-
-	maze.Cell = function(x, y) {
-		this.borders     = maze.createDirectionFlags();
-		this.walls       = maze.createDirectionFlags();
-		this.getLocation = _.constant([x, y]);
-		this.parentCell  = null;
-	};
-
-	maze.Cell.prototype.allWallsIntact = function() {
-		return _.every(_.map(this.walls, function(flag) {
-			return flag;
-		}));
-	};
-
-	maze.getDirections = function() {
-		return _.chain(_.range(-1, 2)).repeat(2).product().reject(function(pair) {
-			return Math.abs(pair[0]) === Math.abs(pair[1]);
-		}).value();
-	};
-
-	maze.createDirectionFlags = function() {
-		return _.object(maze.getDirections(), _.repeat(true, 4));
-	};
-
-	maze.connectAdjacent = function(cellA, cellB) {
-		var directionFromA2B = _.subtract(cellB.getLocation(), cellA.getLocation());
-		var directionFromB2A = _.multiply(directionFromA2B, -1);
-		cellA.walls[directionFromA2B] = false;
-		cellB.walls[directionFromB2A] = false;
+	maze.Model.prototype.getWalledNeighbors = function(cell) {
+		return _.filter(this.getNeighbors(cell), function(neighbor) {
+				return neighbor.allWallsIntact();
+			});
 	};
 
 	maze.Model.prototype.getUnWalledNeighbors = function(cell) {
@@ -145,6 +109,12 @@
 						return grid[_.add(offset, cell.getLocation())];
 					})
 					.compact().value();
+	};
+
+	maze.Model.prototype.manipulateWall = function(cell, direction) {
+		cell.walls[direction] = !cell.walls[direction];
+		var neighbor = this.grid[_.add(cell.getLocation(), direction)];
+		neighbor.walls[_.multiply(direction, -1)] = !neighbor.walls[_.multiply(direction, -1)];
 	};
 
 	//calculates the paths between all the cells using Dijkstra's Algorithm
@@ -197,15 +167,6 @@
 
 	//executed once every second, handles player death and enemy movement
 	maze.Model.prototype.step = function() {
-		//if the player touches any enemy, they die and respawn
-		if (_.any(this.enemies, function(enemy) {
-			return this.player1.currentCell[0] === enemy.currentCell[0] &&
-				this.player1.currentCell[1] === enemy.currentCell[1];
-		}, this)) {
-			this.player1.currentCell = this.player1Spawn;
-			this.calculatePaths();
-		}			
-
 		//enemy movement:
 		_.each(this.enemies, function(enemy) {
 			if(enemy.currentCell[0] % 1 === 0 && enemy.currentCell[1] % 1 === 0) {
@@ -225,15 +186,53 @@
 		this.steps++;
 	};
 
-	maze.Model.prototype.moveCreature = function(creature, direction) {
-		if(!this.grid[creature.roundCurrentCell()].walls[direction]) { 
-			creature.currentCell = _.add(creature.currentCell, direction);
-		}
+	maze.Model.prototype.isMoveValid = function(creature, direction) {
+		return !this.grid[creature.roundCurrentCell()].walls[direction];
+	};
+
+	maze.Model.prototype.checkDeathByEnemy = function() {
+		return _.any(this.enemies, function(enemy) {
+			return _.arrayEquals(this.player1.currentCell, enemy.currentCell);
+		}, this);
+	};
+
+	maze.getDirections = function() {
+		return _.chain(_.range(-1, 2)).repeat(2).product().reject(function(pair) {
+			return Math.abs(pair[0]) === Math.abs(pair[1]);
+		}).value();
+	};
+
+	maze.createDirectionFlags = function() {
+		return _.object(maze.getDirections(), _.repeat(true, 4));
+	};
+
+	maze.connectAdjacent = function(cellA, cellB) {
+		var directionFromA2B = _.subtract(cellB.getLocation(), cellA.getLocation());
+		var directionFromB2A = _.multiply(directionFromA2B, -1);
+		cellA.walls[directionFromA2B] = false;
+		cellB.walls[directionFromB2A] = false;
+	};
+
+	maze.Cell = function(x, y) {
+		this.borders     = maze.createDirectionFlags();
+		this.walls       = maze.createDirectionFlags();
+		this.getLocation = _.constant([x, y]);
+		this.parentCell  = null;
+	};
+
+	maze.Cell.prototype.allWallsIntact = function() {
+		return _.every(_.map(this.walls, function(flag) {
+			return flag;
+		}));
 	};
 
 	maze.Creature = function(spawn) {
 		this.currentCell = spawn;
-		this.previousCell = [spawn];
+		this.previousCell = spawn;
+	};
+
+	maze.Creature.prototype.move = function(direction) {
+		this.currentCell = _.add(this.currentCell, direction);
 	};
 
 	maze.Creature.prototype.roundCurrentCell = function() {
@@ -255,6 +254,7 @@
 	};
 
 	maze.Enemy.prototype = new maze.Creature(); //Enemy inherits Creature
+
 	maze.Enemy.prototype.constructor = maze.Enemy; //else the Enemy constructor pointer will point to Creature
 
 	maze.Enemy.prototype.move = function(direction, decPlaces) {
@@ -262,6 +262,4 @@
 		this.currentCell[0] = Number(this.currentCell[0].toFixed(decPlaces));
 		this.currentCell[1] = Number(this.currentCell[1].toFixed(decPlaces));
 	};
-
-
 }());
