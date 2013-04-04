@@ -165,6 +165,46 @@
 		}
 	};
 
+	//calculates the paths between each enemy and the player using the A* Algorithm
+	maze.Model.prototype.calculatePathsAStar = function() {
+		_.each(this.enemies, function(enemy) {
+			var set       = {},
+				paths     = {},
+				f_score   = {},	//f_score = g_score + h_score, but g_score is a constant. To find the h_score, this algorithm uses the "Manhattan method"
+				current   = this.player1.currentCell,
+				target    = enemy.currentCell;
+		
+			set[current] = "open";
+			f_score[current] = Math.abs(current[0] - target[0]) + Math.abs(current[1] - target[1]);
+
+			while(_.filter(set, function(state) { return state == "open" }).length > 0) {
+				_.each(set, function(val, cell) {
+					if(val == "open" && (set[current] === "closed" || f_score[cell] <= f_score[current])) {
+						current = cell;
+					}
+				});
+
+				if(current == target) {
+					enemy.paths = paths;
+					console.log(paths);
+					break;
+				}
+
+				set[current] = "closed";
+
+				var neighbors = this.getUnWalledNeighbors(this.grid[current]);
+				_.each(neighbors, function(neighbor) {
+					neighbor = neighbor.getLocation();
+					if(set[neighbor] !== "open" && set[neighbor] !== "closed") {
+						paths[neighbor] = _.map(current.split(","), function(num){return Number(num);});
+						set[neighbor] = "open";
+						f_score[neighbor] = Math.abs(neighbor[0] - target[0]) + Math.abs(neighbor[1] - target[1]);
+					}
+				}, this);
+			}
+		}, this);
+	};
+
 	//executed once every second, handles player death and enemy movement
 	maze.Model.prototype.step = function() {
 		//enemy movement:
